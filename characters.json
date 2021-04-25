@@ -1,0 +1,7 @@
+[
+{"id":0, "name": "безобидный", "move": false, "warrior" : false, "hunt" : false},
+{"id":1, "name": "исследовательский", "move": true, "warrior" : false, "hunt" : false},
+{"id":2, "name": "падальщик", "move": true, "warrior" : false, "hunt" : false},
+{"id":5, "name": "воинственный", "move": true, "warrior" : true, "hunt" : false},
+{"id":6, "name": "охотник", "move": true, "warrior" : true, "hunt" : true }
+]

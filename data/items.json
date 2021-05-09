@@ -1,0 +1,44 @@
+{
+	
+	"weapons_hold": [
+		{"id": 25, "name": "топор", "wc": 15, "distance": 1, "body": 7,"cost": 20, "weight": 5, "sprite": "hatchet", "accuracy": 4, "purchased":true},
+		{"id": 26, "name": "монтировка", "wc": 10, "distance": 1, "body": 7,"cost": 35, "weight": 6, "sprite": "mount", "accuracy": 2, "purchased":true}
+
+	],
+	"weapons_fire": [
+		{"id": 30, "name": "пистолет", "wc": 22, "distance": 3, "body": 7, "cost": 47, "weight": 20, "sprite": "pistol", "ammo": 50, "accuracy": 3, "purchased": true},
+		{"id": 31, "name": "карабин", "wc": 35,  "distance": 5, "body": 7, "cost": 100, "weight": 35, "sprite": "carabine", "ammo": 51, "accuracy": 4, "purchased": false}
+
+	],
+	"armors" : [
+		{"id": 64, "name": "кепка", "ac": 1, "body": 0, "cost": 25, "weight": 5, "sprite": "ammo", "purchased":true},
+		{"id": 60, "name": "штаны", "ac": 1, "body": 2, "cost": 40, "weight": 15, "sprite": "pantalons", "purchased":true},
+		{"id": 62, "name": "футболка", "ac": 2, "body": 1, "cost": 65, "weight": 10, "sprite": "shirt_armed", "purchased":true},
+		{"id": 63, "name": "берцы", "ac": 3, "body": 3, "cost": 125, "weight": 12, "sprite": "shoes_armed", "purchased":true},
+		{"id": 65, "name": "бронежилет", "ac": 3, "body": 5, "cost": 125, "weight": 30, "sprite": "armor_armed", "purchased":true}
+	
+	],
+	"drugs" :[
+		{"id": 102, "name": "аптечка", "effect": 50, "cost": 100, "weight": 8, "sprite": "medkit", "purchased":true}
+	
+	],
+	"foods": [
+		{"id": 10, "name": "хлеб", "effect": -30, "cost": 5, "weight": 5, "sprite": "bread", "purchased":true},
+		{"id": 11, "name": "сухпаек", "effect": -50, "cost": 280, "weight": 10, "sprite": "dry_ration", "purchased":false}
+	],
+	"drinks": [
+		{"id": 12, "name": "энергетик", "effect": -35, "cost": 55, "weight": 18, "sprite": "drink_energy", "purchased":true}
+	],
+	"ammo": [
+		{"id": 50, "name": "9х18 мм", "weapon": 30, "cost": 1, "weight": 1, "sprite": "ammo_9x18mm", "purchased":true},
+		{"id": 51, "name": "5,45х39 мм", "weapon": 31, "cost": 2, "weight": 2, "sprite": "ammo", "purchased":false}
+	
+	],
+	"artefacts": [
+		{"id": 99, "name": "осколок", "weight": 1, "sprite": "fragment", "purchased":false},
+
+	],
+	"containers": [
+		{"id": 160, "name": "рюкзак армейский", "body": 4, "capacity": 200, "weight": 5, "sprite": "backpack_armed", "purchased":true}
+	]
+}

@@ -1,14 +1,32 @@
-AGAction getObjectInfo, lightOn, lightOff, noteRead, getAllItemsFromObjectInItems, putAllItemsFromContainer, 
+AGAction getObjectInfo, getLayerInfo, lightOn, lightOff, noteRead, getAllItemsFromObjectInItems, putAllItemsFromContainer, 
 
   getItemInfo, getWearInfo, itemThrow, itemThrowAll, itemPut, itemPutAll, itemEat, itemDrink, itemUse, 
 
-  entityAtack;
+  entityAtack, 
 
-Runnable getAllItemFromItems, putAllItemForItems, getItemFromItems, putItemForItems, setItemWear, removeItemWear, actionDoor, 
-  throwItemForEntity;
+  buyAllItems, 
+  objectDestroy;
+
+Runnable getAllItemFromItems, putAllItemForItems, getItemFromItems, putItemForItems, setItemWear, removeItemWear, closeDoor, openDoor, lockDoor, unlockDoor, 
+  throwItemForEntity, buyItem, objectCreate;
 
 void createActions() {
 
+
+  objectDestroy = new AGAction ("разобрать", new Runnable() {
+    public void run() {
+      AGObject object =game.room.getAllObjects().getAGObject(mainList.select.id);
+      game.room.removeObject(object);
+
+      game.room.forTick(1);
+      game.player.updateNeighbor();
+    }
+  }
+  );
+  objectCreate = new Runnable() {  //
+    public void run() {
+    }
+  };
   setItemWear = new Runnable() {  //функция надевает какое либо снаряжение из инвентаря на часть тела игрока
     public void run() {
       int item = mainList.select.id;
@@ -32,10 +50,87 @@ void createActions() {
       loadMainListEquip(game.player);
     }
   };
-  actionDoor = new Runnable() {  //функция убирает какое либо снаряжение из части тела игрока и кладет в инвентарь
+  buyItem = new Runnable() {  //функция убирает какое либо снаряжение из части тела игрока и кладет в инвентарь
+    public void run() {
+      AGObject object = game.room.markets.getAGObject(mainList.select.id);
+      int item = secondList.select.id, 
+        fragments_cost = game.player.items.getCount(AGData.FRAGMENT);
+      AGMarket market = (AGMarket)object;
+      boolean buy = false;
+      Integer count, 
+        cost = d.getItem(item).getInt("cost");
+      if (market.items.getCount(item)>1) {
+        count = dialog.showSlider(
+          "Выбор значения", // question
+          "Укажите количество", // title
+          1, // range: start value
+          market.items.getCount(item), // market.items.getCount(item), // range: end value
+          1, // initial value
+          market.items.getCount(item)-1, // steps for ticks with value
+          1);
+        if (count!=null) {
+          cost = d.getItem(item).getInt("cost")*count;
+          buy= true;
+          clearAllLists();
+          game.player.updateNeighbor();
+        }
+      } else {
+        buy = true;
+        count = 1 ;
+      }
+      if (buy && count!=null) {
+        if (fragments_cost>=cost) {
+          for (int i = 0; i<count; i++) {
+            game.player.items.append(item);
+            market.items.removeValue(item);
+          }
+          for (int i = 0; i<cost; i++) 
+            game.player.items.removeValue(AGData.FRAGMENT);
+          game.room.forTick(1);
+          game.printConsole("вы купили: "+d.getItem(item).getString("name")+" x"+count+", стоимость: "+cost+
+            " остаток: "+game.player.items.getCount(AGData.FRAGMENT), false);
+        } else
+          game.printConsole("не хватает осколков для покупки: "+d.getItem(item).getString("name")+", стоимость: "+cost+
+            " остаток: "+game.player.items.getCount(AGData.FRAGMENT), false);
+      }
+    }
+  };
+  closeDoor = new Runnable() {  //функция убирает какое либо снаряжение из части тела игрока и кладет в инвентарь
     public void run() {
       AGDoor door = (AGDoor)game.room.doors.getAGObject(mainList.select.id);
-      door.lock=!door.lock;
+      door.open = false;
+      game.room.node[door.x][door.y].through=door.getThrough();
+      game.room.node[door.x][door.y].solid=door.getSolid();
+      clearAllLists();
+      game.room.forTick(1);
+    }
+  };
+  openDoor = new Runnable() {  //функция убирает какое либо снаряжение из части тела игрока и кладет в инвентарь
+    public void run() {
+      AGDoor door = (AGDoor)game.room.doors.getAGObject(mainList.select.id);
+      door.open = true;
+      game.room.node[door.x][door.y].through=door.getThrough();
+      game.room.node[door.x][door.y].solid=door.getSolid();
+      clearAllLists();
+      game.room.forTick(1);
+    }
+  };
+  lockDoor = new Runnable() {  //функция убирает какое либо снаряжение из части тела игрока и кладет в инвентарь
+    public void run() {
+      AGDoor door = (AGDoor)game.room.doors.getAGObject(mainList.select.id);
+      door.lock = true;
+      game.room.node[door.x][door.y].through=door.getThrough();
+      game.room.node[door.x][door.y].solid=door.getSolid();
+      clearAllLists();
+      game.room.forTick(1);
+    }
+  };
+  unlockDoor = new Runnable() {  //функция убирает какое либо снаряжение из части тела игрока и кладет в инвентарь
+    public void run() {
+      AGDoor door = (AGDoor)game.room.doors.getAGObject(mainList.select.id);
+      door.lock = false;
+      game.room.node[door.x][door.y].through=door.getThrough();
+      game.room.node[door.x][door.y].solid=door.getSolid();
       clearAllLists();
       game.room.forTick(1);
     }
@@ -133,6 +228,16 @@ void createActions() {
     }
   }
   );
+  getLayerInfo = new AGAction ("информация", new Runnable() {
+    public void run() {
+      AGObject object = game.room.layer[mainList.select.id-(int(mainList.select.id/game.room.sizeX)*game.room.sizeX)][int(mainList.select.id/game.room.sizeX)];
+      String info = object.getName();
+      game.printConsole("вы видите: "+info, false);
+      clearAllLists();
+      game.player.updateNeighbor();
+    }
+  }
+  );
   entityAtack = new AGAction ("атаковать", new Runnable() {
     public void run() {
       AGObject object = game.room.getAllObjects().getAGObject(mainList.select.id);
@@ -194,6 +299,19 @@ void createActions() {
     public void run() {
       int item = mainList.select.id;
       if (game.room.dropItem(game.player.x, game.player.y, item, 1)) {
+        game.player.items.removeValue(item);
+        clearAllLists();
+        game.room.forTick(1);
+        loadMainListInventory(game.player);
+      }
+    }
+  }
+  );
+  buyAllItems = new AGAction ("купить все", new Runnable() {
+    public void run() {
+      int item = mainList.select.id;
+      if (game.room.dropItem(game.player.x, game.player.y, item, game.player.items.getCount(item))) {
+        while (game.player.items.hasValue(item))
         game.player.items.removeValue(item);
         clearAllLists();
         game.room.forTick(1);

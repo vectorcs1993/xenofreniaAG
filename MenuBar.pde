@@ -11,7 +11,7 @@ import java.awt.Color;
 public class MenuBar {
   JFrame frame;
   JMenuBar menu_bar;
-  JMenuItem renameBlock, renameParameter, setType, clearGraph, clear_log, changeColorGraphBackground, createReport;
+  JMenuItem renameBlock, renameParameter, setType, clearGraph, menuNewGame, changeColorGraphBackground, createReport;
 
 
   public MenuBar(PApplet app) {
@@ -22,20 +22,20 @@ public class MenuBar {
     menu_bar = new JMenuBar();
     frame.setJMenuBar(menu_bar);
 
-    JMenu import_menu = new JMenu("Лог");
-    JMenu block_menu = new JMenu("Блок");
-    JMenu parameter_menu = new JMenu("Параметр");
-    JMenu graph_menu = new JMenu("График");
+    JMenu menuGame = new JMenu("Игра");
+    JMenu menuPerson = new JMenu("Персонаж");
+    JMenu menu_settings = new JMenu("Настойки");
+    JMenu menu_editor = new JMenu("Редактор");
 
 
-    menu_bar.add(import_menu);
-    menu_bar.add(block_menu);
-    menu_bar.add(parameter_menu);
-    menu_bar.add(graph_menu);
+    menu_bar.add(menuGame);
+    menu_bar.add(menuPerson);
+    menu_bar.add(menu_settings);
+    menu_bar.add(menu_editor);
 
-    JMenuItem new_file = new JMenuItem("Загрузить лог");
-    clear_log = new JMenuItem("Очистить лог");
-    JMenuItem action_exit = new JMenuItem("Выход");
+    JMenuItem menuLoadGame = new JMenuItem("Загрузить игру");
+    menuNewGame = new JMenuItem("Новая игра");
+    JMenuItem menuExit = new JMenuItem("Выход");
 
     renameBlock = new JMenuItem("Переименовать");
 
@@ -46,22 +46,22 @@ public class MenuBar {
     changeColorGraphBackground = new JMenuItem("Изменить цвет фона");
     createReport = new JMenuItem("Сформировать отчет");
 
-    import_menu.add(new_file);
-    import_menu.add(clear_log);
-    import_menu.addSeparator();
-    import_menu.add(action_exit);
+    menuGame.add(menuLoadGame);
+    menuGame.add(menuNewGame);
+    menuGame.addSeparator();
+    menuGame.add(menuExit);
 
-    block_menu.add(renameBlock);
-    parameter_menu.add(renameParameter);
-    parameter_menu.add(setType);
+    menuPerson.add(renameBlock);
+    menu_settings.add(renameParameter);
+    menu_settings.add(setType);
 
-    graph_menu.add(clearGraph);
-    graph_menu.add(changeColorGraphBackground);
-    graph_menu.add(createReport);
+    menu_editor.add(clearGraph);
+    menu_editor.add(changeColorGraphBackground);
+    menu_editor.add(createReport);
 
  
    
-    action_exit.addActionListener(new ActionListener() {
+    menuExit.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent arg0) {
         exit();
       }

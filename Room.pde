@@ -1,27 +1,30 @@
 class AGRoom {
   String name;
-  int [][] terrain, buildings, roads, temperature;
-  AGObjects enviroments, doors, entities, containers, sourcesOfLight, deathEntities, portals, items;
+  int [][] terrain, objects, roads, temperature, roof, houses_id;
+  AGObjects enviroments, doors, entities, containers, sourcesOfLight, deathEntities, portals, items, markets;
   Cell [][] node;
+  AGLayer [][] layer;
   int x, y, sizeX, sizeY, stepScroll, maxEnemy;
   AGGame window;
   ArrayList <Bullet> bullets;
   PGraphics map;
-
-  AGRoom (AGGame window, int x, int y, int sizeX, int sizeY, int [][] terrain, int [][] roads, int [][] buildings, String name) {
+  AGObject select;
+  AGRoom (AGGame window, int x, int y, int sizeX, int sizeY, int [][] terrain, int [][] roof, int [][] roads, int [][] objects, String name) {
     this.x=x;
     this.y=y;
     this.sizeX=sizeX;
     this.sizeY=sizeY;
     this.window = window;
     stepScroll = 1;
-    maxEnemy = 1;
+    maxEnemy = 0;
     this.name=name;
     this.terrain = terrain;
+    this.roof=roof;
     this.roads=roads;   //массив дорог 1 - свободная клетка с дорожным покрытием, доступно для размещения сущностей.
     // 0 - занятая каким либо объектом или пустотой клетка
-    this.buildings=buildings;
+    this.objects=objects;
     node =  d.getNewNodes(sizeX, sizeY);
+    layer = new AGLayer [sizeX][sizeY];
     enviroments= new AGObjects();
     doors= new AGObjects();
     entities= new AGObjects();
@@ -29,6 +32,7 @@ class AGRoom {
     deathEntities = new AGObjects();
     portals = new AGObjects();
     items = new AGObjects();
+    markets = new AGObjects();
     containers = new AGObjects();
     bullets = new ArrayList<Bullet>();
     map = createGraphics(sizeX, sizeY);
@@ -36,29 +40,32 @@ class AGRoom {
     map.background(black);
     for (int ix=0; ix<sizeX; ix++) {
       for (int iy=0; iy<sizeY; iy++) {
+        //cоздание террайна
+        layer[ix][iy] = new AGLayer(this, terrain[ix][iy], ix, iy);
+        layer[ix][iy].id = sizeX*iy+ix;
         //создание объектов 
-        if (buildings[ix][iy]!=0) {
-          if (buildings[ix][iy]==1) {
-            enviroments.add(new AGWall(this, 0, ix, iy));
+        if (objects[ix][iy]!=0) {
+          if (objects[ix][iy]==AGData.WALL) {
+            enviroments.add(new AGWall(this, AGData.WALL, ix, iy));
             map.stroke(white);
             map.point(ix, iy);
-          } else if (buildings[ix][iy]==2) {
-            doors.add(new AGDoor(this, 0, ix, iy));
-            terrain[ix][iy]=4;
+          } else if (objects[ix][iy]==AGData.DOOR) {
+            doors.add(new AGDoor(this, AGData.DOOR, ix, iy));
             node[ix][iy].door=true;
-          } else if (buildings[ix][iy]==9) {
-            node[ix][iy].roof=true;
-            terrain[ix][iy]=4;
-          } else if (buildings[ix][iy]==3) 
-            enviroments.add(new AGTree(this, int(1+random(2)), ix, iy));
-          else if (buildings[ix][iy]==4) 
-            sourcesOfLight.add(new AGBonfire(this, 0, ix, iy, 2, 51));
-          else if (buildings[ix][iy]==7) 
-            portals.add(new AGPortal(this, 0, ix, iy));
-          else if (buildings[ix][iy]==27) 
-            containers.add(new AGContainer(this, 0, ix, iy));
-               else if (buildings[ix][iy]==Database.FRAGMENT) 
-            items.add(new AGItem(this, ix, iy, int(random(3)), 1));
+          } else if (objects[ix][iy]==AGData.TREE1 || objects[ix][iy]==AGData.TREE2) 
+            enviroments.add(new AGEnviroment(this, objects[ix][iy], ix, iy));
+          else if (objects[ix][iy]==AGData.BONFIRE) 
+            sourcesOfLight.add(new AGBonfire(this, AGData.BONFIRE, ix, iy, 2, 51));
+          else if (objects[ix][iy]==AGData.PORTAL) 
+            portals.add(new AGPortal(this, AGData.PORTAL, ix, iy));
+          else if (objects[ix][iy]==AGData.OBJ_CONTAINER || objects[ix][iy]==AGData.WARDROBE) 
+            containers.add(new AGContainer(this, objects[ix][iy], ix, iy));
+          else if (objects[ix][iy]==AGData.FRAGMENT) 
+            items.add(new AGItem(this, ix, iy, AGData.FRAGMENT, 1));
+          else if (objects[ix][iy]==AGData.MARKET_AMMO || objects[ix][iy]==AGData.MARKET_WEAPONS ||
+            objects[ix][iy]==AGData.MARKET_ARMOR || objects[ix][iy]==AGData.MARKET_DRUGS || objects[ix][iy]==AGData.MARKET_EAT_AND_DRINKS) {
+            markets.add(new AGMarket(this, objects[ix][iy], ix, iy, d.getMarketItems(objects[ix][iy])));
+          }
         } else {
           if (roads[ix][iy]==1) {
             map.stroke(gray);
@@ -80,48 +87,46 @@ class AGRoom {
   void drawMap(int scale) {
     for (int ix=0; ix<sizeX; ix++) {
       for (int iy=0; iy<sizeY; iy++) {
-         if (node[ix][iy].open) {
-        if (buildings[ix][iy]!=0) {
-          if (buildings[ix][iy]==1) {
-            fill(brown);
-            rect(ix*scale, iy*scale, scale, scale);
-          } else if (buildings[ix][iy]==2) {
-          } else if (buildings[ix][iy]==9) {
-          } else if (buildings[ix][iy]==3) {
-            fill(tree);
-            rect(ix*scale, iy*scale, scale, scale);
-          } else if (buildings[ix][iy]==4) {
-          } else if (buildings[ix][iy]==7) {
-            fill(purple);
-            rect(ix*scale, iy*scale, scale, scale);
-          } else if (buildings[ix][iy]==27) {
-          } else if (buildings[ix][iy]==Database.FRAGMENT) {
+        if (node[ix][iy].open) {
+          if (objects[ix][iy]!=0) {
+            if (objects[ix][iy]==1) {
+              fill(brown);
+              rect(ix*scale, iy*scale, scale, scale);
+            } else if (objects[ix][iy]==2) {
+            } else if (objects[ix][iy]==9) {
+            } else if (objects[ix][iy]==3) {
+              fill(tree);
+              rect(ix*scale, iy*scale, scale, scale);
+            } else if (objects[ix][iy]==4) {
+            } else if (objects[ix][iy]==7) {
+              fill(purple);
+              rect(ix*scale, iy*scale, scale, scale);
+            } else if (objects[ix][iy]==27) {
+            } else if (objects[ix][iy]==AGData.FRAGMENT) {
               fill(sky);
-            rect(ix*scale, iy*scale, scale, scale);
+              rect(ix*scale, iy*scale, scale, scale);
+            }
+          } else {
+            if (roads[ix][iy]==1) {
+              fill(black);
+              rect(ix*scale, iy*scale, scale, scale);
+            }
           }
-        } else {
-          if (roads[ix][iy]==1) {
-            fill(black);
-            rect(ix*scale, iy*scale, scale, scale);
-          }
-        }
         }
       }
     }
   }
   void drawMapEntity(int scale) {
-      fill(white);
-      rect(window.player.x*scale, window.player.y*scale, scale, scale);  //отображение игрока
-      for (AGObject entity : window.player.getAllNeighbors(AGEntity.ENTITY, window.player.view)) {
-        if (((AGEntity)entity).side!=window.player.side) 
-          fill(red);
-        else
-          fill(green);
-        rect(entity.x*scale, entity.y*scale, scale, scale);
-      }
+    fill(white);
+    rect(window.player.x*scale, window.player.y*scale, scale, scale);  //отображение игрока
+    for (AGObject entity : window.player.getAllNeighbors(AGEntity.ENTITY, window.player.view)) {
+      if (((AGEntity)entity).side!=window.player.side) 
+        fill(red);
+      else
+        fill(green);
+      rect(entity.x*scale, entity.y*scale, scale, scale);
+    }
   }
-
-
   void forTick(int i) {
     for (int tick = 0; tick<i; tick++) {
       tick();
@@ -198,14 +203,14 @@ class AGRoom {
   AGEntity createEntity(int x, int y) {
     //   JSONObject entity = d.getEntityRandom();
     JSONObject entity = d.getEntity(32);
-    if (Database.HUMAN==d.getEntityClass(entity.getInt("id")))
+    if (AGData.HUMAN==d.getEntityClass(entity.getInt("id")))
       return new AGHuman(this, entity.getInt("id"), x, y, 
         entity.getInt("side"), 
         entity.getInt("character"), 
         entity.getInt("hp"), 
         entity.getInt("wc"), 
         entity.getJSONArray("items").getIntArray());
-    else if (Database.MONSTER==d.getEntityClass(entity.getInt("id")))
+    else if (AGData.MONSTER==d.getEntityClass(entity.getInt("id")))
       return new AGEntity(this, entity.getInt("id"), x, y, 
         entity.getInt("radius_atack"), 
         entity.getInt("side"), 
@@ -279,7 +284,7 @@ class AGRoom {
     if (temperature==null)
       temperature = createGrid(sizeX, sizeY); //создает массив значений освещенности
     frozenGrid(temperature);
-    nullGrid(window.player.matrixView);//очищает массив значений освещенности
+    setGrid(window.player.matrixView, AGData.NULL);//очищает массив значений освещенности
     for (AGObject light : sourcesOfLight) { //перебираем все функционируемые источники света
       if (((AGLight)light).on) {             //если фонарь включен
         adjView(light, ((AGLight)light).light, view); //корректируем массив освещенности
@@ -295,7 +300,7 @@ class AGRoom {
         if (ax>=0 && ay>=0 && ax<sizeX && ay<sizeY) {
           if (node[ax][ay].open) {
             pushStyle();
-            if (node[ax][ay].roof &&  window.player.matrixView[ax][ay]==-1)
+            if (roof[ax][ay]==AGData.ROOF_ON &&  window.player.matrixView[ax][ay]==-1)
               node[ax][ay].transparent=0;
             else {
               if (window.player.hp>0)
@@ -305,20 +310,20 @@ class AGRoom {
               else 
               node[ax][ay].transparent=game.date.getDarknessValue();
             }
-            tint(white, node[ax][ay].transparent);
-            image(d.getTile(terrain[ax][ay]), ix*window.size_grid, iy*window.size_grid);
-            if (node[ax][ay].transparent==0 && node[ax][ay].roof) { 
+            layer[ax][ay].display();
+            if (node[ax][ay].transparent==0 && roof[ax][ay]==AGData.ROOF_ON) { 
               tint(white, 255);
-              image(spr_roof, ix*window.size_grid, iy*window.size_grid);
+              image(d.roof, ix*window.size_grid, iy*window.size_grid);
             }
             popStyle();
           }
         }
       }
     }
+
     if (deathEntities.size()>10)
       deathEntities.remove(0);
-    for (AGObjects objects : new AGObjects [] {getAllTraces(), enviroments, portals, doors, sourcesOfLight, items, containers, deathEntities, entities}) {
+    for (AGObjects objects : new AGObjects [] {getAllTraces(), enviroments, portals, doors, sourcesOfLight, items, containers, markets, deathEntities, entities}) {
       for (int i = objects.size()-1; i>=0; i--) {
         if (isOverWindow(objects.get(i).x, objects.get(i).y)) 
           controlDraw(objects.get(i));
@@ -332,6 +337,19 @@ class AGRoom {
         else
           bullet.update();
       }
+    }
+    select = null;
+    if (mainList.select!=null) {
+      if (menuActions.select.event.equals("enviroment"))
+        select = mainList.select.getObject();
+      else if (menuActions.select.event.equals("terrain"))
+        select = mainList.select.getLayer();
+    }
+    if (select!=null) {
+      select.beginDisplay();
+
+      select.drawSelected();
+      select.endDisplay();
     }
   }
   void controlDraw(AGObject object) {
@@ -350,7 +368,7 @@ class AGRoom {
   }
   AGObjects getAllObjects() {
     AGObjects all_objects = new AGObjects();
-    for (AGObjects objects : new AGObjects [] {getAllTraces(), items, portals, enviroments, doors, containers, sourcesOfLight, deathEntities, entities}) { 
+    for (AGObjects objects : new AGObjects [] {getAllTraces(), items, portals, enviroments, doors, containers, markets, sourcesOfLight, deathEntities, entities}) { 
       for (AGObject object : objects) 
         all_objects.add(object);
     }
@@ -358,7 +376,15 @@ class AGRoom {
   }
   AGObjects getAllObjectsNotEntitiesNotTraces() {
     AGObjects all_objects = new AGObjects();
-    for (AGObjects objects : new AGObjects [] {items, portals, enviroments, doors, containers, sourcesOfLight, deathEntities}) { 
+    for (AGObjects objects : new AGObjects [] {items, portals, enviroments, doors, containers, markets, sourcesOfLight, deathEntities}) { 
+      for (AGObject object : objects) 
+        all_objects.add(object);
+    }
+    return all_objects;
+  }
+  AGObjects getAllObjectsNotTraces() {
+    AGObjects all_objects = new AGObjects();
+    for (AGObjects objects : new AGObjects [] {items, portals, enviroments, doors, containers, markets, sourcesOfLight, entities, deathEntities}) { 
       for (AGObject object : objects) 
         all_objects.add(object);
     }
@@ -381,7 +407,7 @@ class AGRoom {
   }
   AGObjects getObjectsUpdates() {
     AGObjects all_objects = new AGObjects();
-    for (AGObjects objects : new AGObjects [] {doors, entities}) { 
+    for (AGObjects objects : new AGObjects [] {entities}) { 
       for (AGObject object : objects) {
         if (object!=window.player)
           all_objects.add(object);
@@ -396,6 +422,13 @@ class AGRoom {
         all_objects.add(object);
     }
     return all_objects;
+  }
+  void removeObject(AGObject object) {
+   if (object instanceof AGEnviroment)
+     enviroments.remove(object);
+     
+     node[object.x][object.y].solid=false;
+     node[object.x][object.y].through=true;
   }
 }
 

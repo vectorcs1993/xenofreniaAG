@@ -133,6 +133,12 @@ class AGGame extends ActiveElement {
           if (frameCount%40<40/2) 
             drawParameter(244, 20, 160, "!голод", str(player.hunger), red);
         }
+         if (player.xenofrenia<80)
+          drawParameter(244, 40, 160, "заражение", str(player.xenofrenia), green);
+        else { 
+          if (frameCount%40<40/2) 
+            drawParameter(244, 40, 160, "!заражение", str(player.xenofrenia), red);
+        }
         popMatrix();
       }
     } else if (menuPlayer.select.event.equals("need_person")) {
@@ -157,6 +163,7 @@ class AGGame extends ActiveElement {
       fill(white);
       text("местность: "+room.name+
         "\nпозиция: x:"+player.x+", y:"+player.y+
+        "\nповерхность: "+room.layer[player.x][player.y].getName()+
         "\nтемпература: "+room.temperature[player.x][player.y]+" град. C", 860, 64);
     } else if (menuPlayer.select.event.equals("global_map")) {
       pushMatrix();
@@ -181,14 +188,15 @@ class AGGame extends ActiveElement {
     map.beginDraw();
     for (int ix = 0; ix<5; ix++) {
       for (int iy = 0; iy<5; iy++) {
-        for (int ixr=0; ixr<global_room[ix][iy].buildings.length; ixr++) {
-          for (int iyr=0; iyr<global_room[ix][iy].buildings[ixr].length; iyr++) {
+        for (int ixr=0; ixr<global_room[ix][iy].objects.length; ixr++) {
+          for (int iyr=0; iyr<global_room[ix][iy].objects[ixr].length; iyr++) {
             if (global_room[ix][iy].node[ixr][iyr].open) {
-              if (global_room[ix][iy].buildings[ixr][iyr]!=0) {
-                if (global_room[ix][iy].buildings[ixr][iyr]==Database.WALL) {
+              if (global_room[ix][iy].objects[ixr][iyr]!=0) {
+                if (global_room[ix][iy].objects[ixr][iyr]==AGData.WALL) {
                   map.stroke(white);
                   map.point(ix*40+ixr, iy*40+iyr);
-                } else if (global_room[ix][iy].buildings[ixr][iyr]==Database.TREE) {
+                } else if (global_room[ix][iy].objects[ixr][iyr]==AGData.TREE1 ||
+                global_room[ix][iy].objects[ixr][iyr]==AGData.TREE2) {
                   map.stroke(green);
                   map.point(ix*40+ixr, iy*40+iyr);
                 }

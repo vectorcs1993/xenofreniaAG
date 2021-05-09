@@ -1,0 +1,62 @@
+[
+    {
+        "id": 0,
+        "name": "трава",
+        "sprite": "floor0",
+	"solid" : false
+    },
+    {
+        "id": 1,
+        "name": "трава",
+        "sprite": "floor1",
+	"solid" : false
+    },
+    {
+        "id": 2,
+        "name": "трава",
+        "sprite": "floor2",	
+	"solid" : false   
+    },
+    {
+        "id": 3,
+        "name": "дорога",
+        "sprite": "floor3",  
+    	"solid" : false
+    },
+    {
+        "id": 4,
+        "name": "щебень",
+        "sprite": "floor4",
+        "solid" : false
+    },
+    {
+        "id": 5,
+        "name": "дерево",
+        "sprite": "floor5",
+        "solid" : false
+    },
+    {
+        "id": 6,
+        "name": "сталь",
+        "sprite": "floor6",
+        "solid" : false
+    },
+    {
+        "id": 7,
+        "name": "камень",
+        "sprite": "floor7",
+        "solid" : false
+    },
+    {
+        "id": 8,
+        "name": "мелководье",
+        "sprite": "floor8",
+        "solid" : false
+    },
+    {
+        "id": 9,
+        "name": "вода",
+        "sprite": "floor9",
+        "solid" : true
+    }
+]

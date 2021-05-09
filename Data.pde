@@ -1,12 +1,22 @@
-class Database {
-  HashMap <Integer, int[][]> buildingData;
+class AGData {
+  HashMap <Integer, int[][]> objectsData;
+  HashMap <Integer, int[][]> terrainData;
+  HashMap <Integer, int[][]> roofData;
+  HashMap <Integer, String> buildNameData;
+
+  //террайн
+  HashMap <Integer, JSONObject> terrain;
+  HashMap <Integer, PImage> terrainSprites;
 
   //объекты
-  HashMap <Integer, JSONObject> objects;
+  HashMap <Integer, JSONObject> enviroments, doors, light, obj_containers, portals, markets, workbenches, traces;
+  HashMap <Integer, PImage> objectsSprites;
+  PImage roof, above;
 
   //сущности
-  HashMap <Integer, JSONObject> monsters;
-  HashMap <Integer, JSONObject> humans;
+  JSONObject player;
+  PImage playerSprite;
+  HashMap <Integer, JSONObject> monsters, humans;
   HashMap <Integer, PImage> entitiesSprites;
   IntList entities;
 
@@ -17,23 +27,19 @@ class Database {
   HashMap <Integer, JSONObject> characters;
 
   //предметы
-  HashMap <Integer, JSONObject> weapons_hold;
-  HashMap <Integer, JSONObject> weapons_fire;
-  HashMap <Integer, JSONObject> armors;
-  HashMap <Integer, JSONObject> drugs;
-  HashMap <Integer, JSONObject> foods;
-  HashMap <Integer, JSONObject> drinks;
-  HashMap <Integer, JSONObject> ammo;
-  HashMap <Integer, JSONObject> artefacts;
-  HashMap <Integer, JSONObject> containers;
+  HashMap <Integer, JSONObject> weapons_hold, weapons_fire, armors, drugs, foods, drinks, ammo, artefacts, itm_containers;
   HashMap <Integer, PImage> itemsSprites;
+  IntList items; //уникальное множество, требуется для извлечения случайных предметов
 
-  IntList items;
 
-
-  static final int NULL=-1, EMPTY=0, WALL=1, ROOF=9, TREE=3, DOOR=2, LIGHT=4, PORTAL=7, ROAD=1, 
-    MONSTER=0, HUMAN=1, 
-    WEAPON_HOLD=0, WEAPON_FIRE=1, ARMOR=2, FOOD=3, DRINK=4, DRUG=5, AMMO=6, ARTEFACT=7, CONTAINER=8, FRAGMENT=70;
+  static final int NULL=-1, EMPTY=0, WALL=1, ROOF=9, TREE1=13, TREE2=14, DOOR=2, BONFIRE=4, LIGHT=5, PORTAL=7, OBJ_CONTAINER=27, WARDROBE=28, //объекты 
+    MARKET_AMMO=10, MARKET_WEAPONS= 44, MARKET_ARMOR= 45, MARKET_DRUGS= 47, MARKET_EAT_AND_DRINKS= 46, TRACE = 71, 
+    ROAD=1, //дороги
+    ROOF_ON=1, 
+    TERRAIN_GRASS1=0, TERRAIN_GRASS2=1, TERRAIN_GRASS3=2, TERRAIN_STONE1=4, TERRAIN_ROAD=3, TERRAIN_WOOD=5, TERRAIN_STEEL=6, TERRAIN_STONE2=7, //тайлы
+    TERRAIN_WATER1=8, TERRAIN_WATER2=9, 
+    MONSTER=0, HUMAN=1, //сущности
+    WEAPON_HOLD=0, WEAPON_FIRE=1, ARMOR=2, FOOD=3, DRINK=4, DRUG=5, AMMO=6, ARTEFACT=7, ITM_CONTAINER=8, FRAGMENT=99;  //предметы
   final int [][] matrixShearch = new int [122][2];
   final int [] matrixRadius = { 59, 49, 61, 71, 48, 50, 72, 70, //1 радиус
     47, 36, 37, 38, 39, 40, 51, 62, 73, 84, 83, 82, 81, 80, 69, 58, //2 радиус
@@ -42,7 +48,7 @@ class Database {
     55, 44, 33, 22, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 21, 32, 43, 54, 65, 76, 87, 98, 109, 120, 119, 118, 117, 116, 115, 114, 113, 112, 111, 110, 99, 88, 77, 66}; //5 радиус 
   final int [][] matrixLine;
 
-  Database() {
+  AGData() {
     int n=0; //формирование матриц поиска
     for (int ix=-5; ix<6; ix++) {
       for (int iy=-5; iy<6; iy++) {
@@ -52,6 +58,19 @@ class Database {
       }
     }
     matrixLine = generateLOS(matrixShearch);
+    terrain=new HashMap <Integer, JSONObject>();
+    terrainSprites = new HashMap <Integer, PImage>();
+    traces=new HashMap <Integer, JSONObject>();
+    enviroments=new HashMap <Integer, JSONObject>();
+    doors=new HashMap <Integer, JSONObject>();
+    light=new HashMap <Integer, JSONObject>();
+    obj_containers=new HashMap <Integer, JSONObject>();
+    portals=new HashMap <Integer, JSONObject>();
+    markets=new HashMap <Integer, JSONObject>();
+    workbenches=new HashMap <Integer, JSONObject>();
+    objectsSprites = new HashMap <Integer, PImage>();
+    roof = loadImage("data/roof.png");
+    above = loadImage("data/above.png");
     weapons_hold=new HashMap <Integer, JSONObject>();
     weapons_fire=new HashMap <Integer, JSONObject>();
     armors=new HashMap <Integer, JSONObject>();
@@ -60,68 +79,120 @@ class Database {
     drinks=new HashMap <Integer, JSONObject>();
     ammo=new HashMap <Integer, JSONObject>();
     artefacts=new HashMap <Integer, JSONObject>();
-    containers=new HashMap <Integer, JSONObject>();
+    itm_containers=new HashMap <Integer, JSONObject>();
     itemsSprites = new HashMap <Integer, PImage>();
     items = new IntList();
     bodyParts = new HashMap <Integer, JSONObject>();
     characters = new HashMap <Integer, JSONObject>();
 
-    JSONObject itemsFile = loadJSONObject("items.json");
+    //загрузка персонажа
+    player = loadJSONObject("data/player.json");
+    playerSprite =  loadImage("data/"+player.getString("sprite")+".png");
+    //загрузка террайна
+    JSONArray terrainFile = loadJSONArray("data/terrain.json");
+    for (int j=0; j<terrainFile.size(); j++) {
+      terrain.put(terrainFile.getJSONObject(j).getInt("id"), terrainFile.getJSONObject(j));
+      terrainSprites.put(terrainFile.getJSONObject(j).getInt("id"), loadImage("data/terrain/"+terrainFile.getJSONObject(j).getString("sprite")+".png") );
+    }
+
+    //загрузка объектов
+    JSONObject objectsFile = loadJSONObject("data/objects.json");
+
+    JSONArray objectsArray = objectsFile.getJSONArray("enviroments");
+    for (int j=0; j<objectsArray.size(); j++) {
+      enviroments.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/objects/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+
+    objectsArray = objectsFile.getJSONArray("traces");
+    for (int j=0; j<objectsArray.size(); j++) {
+      traces.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+
+    objectsArray = objectsFile.getJSONArray("doors");
+    for (int j=0; j<objectsArray.size(); j++) {
+      doors.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/objects/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+    objectsArray = objectsFile.getJSONArray("light");
+    for (int j=0; j<objectsArray.size(); j++) {
+      light.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/objects/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+    objectsArray = objectsFile.getJSONArray("portals");
+    for (int j=0; j<objectsArray.size(); j++) {
+      portals.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/objects/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+    objectsArray = objectsFile.getJSONArray("containers");
+    for (int j=0; j<objectsArray.size(); j++) {
+      obj_containers.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/objects/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+    objectsArray = objectsFile.getJSONArray("markets");
+    for (int j=0; j<objectsArray.size(); j++) {
+      markets.put(objectsArray.getJSONObject(j).getInt("id"), objectsArray.getJSONObject(j));
+      objectsSprites.put(objectsArray.getJSONObject(j).getInt("id"), loadImage("data/objects/"+objectsArray.getJSONObject(j).getString("sprite")+".png") );
+    }
+
+    //загрузка предметов
+    JSONObject itemsFile = loadJSONObject("data/items.json");
 
     JSONArray itemsArray = itemsFile.getJSONArray("weapons_hold");
     for (int j=0; j<itemsArray.size(); j++) {
       weapons_hold.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
 
     itemsArray = itemsFile.getJSONArray("weapons_fire");
     for (int j=0; j<itemsArray.size(); j++) {
       weapons_fire.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("armors");
     for (int j=0; j<itemsArray.size(); j++) {
       armors.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("foods");
     for (int j=0; j<itemsArray.size(); j++) {
       foods.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("drinks");
     for (int j=0; j<itemsArray.size(); j++) {
       drinks.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("ammo");
     for (int j=0; j<itemsArray.size(); j++) {
       ammo.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("drugs");
     for (int j=0; j<itemsArray.size(); j++) {
       drugs.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("artefacts");
     for (int j=0; j<itemsArray.size(); j++) {
       artefacts.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
     itemsArray = itemsFile.getJSONArray("containers");
     for (int j=0; j<itemsArray.size(); j++) {
-      containers.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
+      itm_containers.put(itemsArray.getJSONObject(j).getInt("id"), itemsArray.getJSONObject(j));
       items.append(itemsArray.getJSONObject(j).getInt("id"));
-      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage(itemsArray.getJSONObject(j).getString("sprite")+".png") );
+      itemsSprites.put(itemsArray.getJSONObject(j).getInt("id"), loadImage("data/items/"+itemsArray.getJSONObject(j).getString("sprite")+".png") );
     }
 
     monsters = new HashMap <Integer, JSONObject>();
@@ -129,42 +200,63 @@ class Database {
     entitiesSprites = new HashMap <Integer, PImage>();
     entities = new IntList();
     //загрузка сущностей
-    JSONObject entitiesFile = loadJSONObject("entities.json");
+    JSONObject entitiesFile = loadJSONObject("data/entities.json");
     JSONArray entitiesArray = entitiesFile.getJSONArray("monsters");
     for (int j=0; j<entitiesArray.size(); j++) {
       monsters.put(entitiesArray.getJSONObject(j).getInt("id"), entitiesArray.getJSONObject(j));
-      entitiesSprites.put(entitiesArray.getJSONObject(j).getInt("id"), loadImage(entitiesArray.getJSONObject(j).getString("sprite")+".png"));
+      entitiesSprites.put(entitiesArray.getJSONObject(j).getInt("id"), loadImage("data/entities/"+entitiesArray.getJSONObject(j).getString("sprite")+".png"));
       entities.append(entitiesArray.getJSONObject(j).getInt("id"));
     }
     JSONArray humansArray = entitiesFile.getJSONArray("humans");
     for (int j=0; j<humansArray.size(); j++) {
       humans.put(humansArray.getJSONObject(j).getInt("id"), humansArray.getJSONObject(j));
-      entitiesSprites.put(humansArray.getJSONObject(j).getInt("id"), loadImage(humansArray.getJSONObject(j).getString("sprite")+".png"));
+      entitiesSprites.put(humansArray.getJSONObject(j).getInt("id"), loadImage("data/entities/"+humansArray.getJSONObject(j).getString("sprite")+".png"));
       entities.append(humansArray.getJSONObject(j).getInt("id"));
     }
 
 
     //загрузка построек
-    buildingData = new  HashMap <Integer, int[][]>();
-    JSONArray build = loadJSONObject("buildings.json").getJSONArray("house");
+    objectsData = new  HashMap <Integer, int[][]>();
+    terrainData = new  HashMap <Integer, int[][]>();
+    roofData = new  HashMap <Integer, int[][]>();
+    buildNameData = new  HashMap <Integer, String>();
+    JSONArray build = loadJSONObject("data/buildings.json").getJSONArray("house");
     for (int j=0; j<build.size(); j++) {
-      JSONArray arrayD = build.getJSONArray(j);
-      int [][] house = new int [arrayD.getJSONArray(0).size()][arrayD.size()];
-      for (int ix=0; ix<arrayD.size(); ix++) {
-        JSONArray arrayH = arrayD.getJSONArray(ix);
+      JSONObject buildObject = build.getJSONObject(j);
+      buildNameData.put(j, buildObject.getString("name"));
+      JSONArray arrayObjects = buildObject.getJSONArray("objects");
+      int [][] house = new int [arrayObjects.getJSONArray(0).size()][arrayObjects.size()];
+      for (int ix=0; ix<arrayObjects.size(); ix++) {
+        JSONArray arrayH = arrayObjects.getJSONArray(ix);
         for (int iy=0; iy<arrayH.size(); iy++) 
           house[iy][ix] = arrayH.getInt(iy);
       }
-      buildingData.put(j, getAdjBuilding(house, 1));  //1 - не менять, это корректировка ширины и высоты
+      objectsData.put(j, house);
+      JSONArray arrayTerrain = buildObject.getJSONArray("terrain");
+      int [][] terrain = new int [arrayTerrain.getJSONArray(0).size()][arrayTerrain.size()];
+      for (int ix=0; ix<arrayTerrain.size(); ix++) {
+        JSONArray arrayH = arrayTerrain.getJSONArray(ix);
+        for (int iy=0; iy<arrayH.size(); iy++) 
+          terrain[iy][ix] = arrayH.getInt(iy);
+      }
+      terrainData.put(j, terrain);
+      JSONArray arrayRoof = buildObject.getJSONArray("roof");
+      int [][] roof = new int [arrayRoof.getJSONArray(0).size()][arrayRoof.size()];
+      for (int ix=0; ix<arrayRoof.size(); ix++) {
+        JSONArray arrayH = arrayRoof.getJSONArray(ix);
+        for (int iy=0; iy<arrayH.size(); iy++) 
+          roof[iy][ix] = arrayH.getInt(iy);
+      }
+      roofData.put(j, roof);
     }
 
     //загрузка частей тела человека
-    JSONArray bodyPartFile = loadJSONArray("body_parts.json");
+    JSONArray bodyPartFile = loadJSONArray("data/body_parts.json");
     for (int ix=0; ix<bodyPartFile.size(); ix++) 
       bodyParts.put(bodyPartFile.getJSONObject(ix).getInt("id"), bodyPartFile.getJSONObject(ix));
 
     //загрузка характеров сущностей
-    JSONArray characterFile = loadJSONArray("characters.json");
+    JSONArray characterFile = loadJSONArray("data/characters.json");
     for (int ix=0; ix<characterFile.size(); ix++) 
       characters.put(characterFile.getJSONObject(ix).getInt("id"), characterFile.getJSONObject(ix));
   }
@@ -193,8 +285,23 @@ class Database {
     all.putAll(drinks);
     all.putAll(ammo);
     all.putAll(artefacts);
-    all.putAll(containers);
+    all.putAll(itm_containers);
     return all.get(id);
+  }
+  JSONObject getObject(int id) {
+    HashMap <Integer, JSONObject> all = new HashMap <Integer, JSONObject>();
+    all.putAll(enviroments);
+    all.putAll(obj_containers);
+    all.putAll(traces);
+    all.putAll(doors);
+    all.putAll(light);
+    all.putAll(portals);
+    all.putAll(markets);
+    all.putAll(workbenches);
+    return all.get(id);
+  }
+  JSONObject getTerrain(int id) {
+    return terrain.get(id);
   }
   int getItemClass(int id) {  //возвращает класс предмета
     if (weapons_hold.containsKey(id)) 
@@ -211,8 +318,8 @@ class Database {
       return DRUG;
     else if (artefacts.containsKey(id)) 
       return ARTEFACT;
-    else if (containers.containsKey(id)) 
-      return CONTAINER;
+    else if (itm_containers.containsKey(id)) 
+      return ITM_CONTAINER;
     else 
     return -1;
   }
@@ -251,15 +358,15 @@ class Database {
     JSONObject itemObject = getItem(item);
     String info = itemObject.getString("name")+", вес: "+itemObject.getInt("weight");
     int itemClass = getItemClass(item);
-    if (itemClass==Database.FOOD)
+    if (itemClass==AGData.FOOD)
       info+=", голод: "+itemObject.getInt("effect");
-    else if (itemClass==Database.DRINK)
+    else if (itemClass==AGData.DRINK)
       info+=", жажда: "+itemObject.getInt("effect");
-    else if (itemClass==Database.DRUG)
+    else if (itemClass==AGData.DRUG)
       info+=", здоровье: +"+itemObject.getInt("effect");
-    else if (itemClass==Database.ARMOR) {
+    else if (itemClass==AGData.ARMOR) {
       info+=", назначение: "+getNameEquip(itemObject.getInt("body"))+", защита: +"+itemObject.getInt("ac");
-    } else if (itemClass==Database.WEAPON_FIRE || itemClass==Database.WEAPON_HOLD) {
+    } else if (itemClass==AGData.WEAPON_FIRE || itemClass==AGData.WEAPON_HOLD) {
       info+=", назначение: "+getNameEquip(itemObject.getInt("body"))+", урон: "+itemObject.getInt("wc")+", дальность: "+itemObject.getInt("distance");
     }
     return info;
@@ -276,6 +383,16 @@ class Database {
     else
       return "не определено";
   }
+  int [] getMarketItems(int id) {   //возвращает массив предметов для продажи в магазинах
+    IntList itemsArray = new IntList();
+    JSONArray items = getObject(id).getJSONArray("items");
+    for (int i = 0; i<items.size(); i ++) {
+      JSONObject object = items.getJSONObject(i);
+      for (int c = 0; c<int(random(object.getInt("count"))); c++)
+        itemsArray.append(object.getInt("id"));
+    }
+    return itemsArray.values();
+  }
   int getEntityClass(int id) {
     if (monsters.containsKey(id)) 
       return MONSTER;
@@ -290,8 +407,13 @@ class Database {
   PImage getItemSprite(int id) {
     return itemsSprites.get(id);
   }
-
-  void generateRoads(Cell[][] node, int [][] map, int [][] objects, Cells doors, int x, int y, int sizeX, int sizeY) {
+  PImage getObjectSprite(int id) {
+    return objectsSprites.get(id);
+  }
+  PImage getTerrainSprite(int id) {
+    return terrainSprites.get(id);
+  }
+  void generateRoads(Cell[][] node, int [][] roads, int [][] objects, int [][] terrain, Cells doors, int x, int y, int sizeX, int sizeY) {
     doors=doors.sortRandom();
     for (int i = 0; i<doors.size()-1; i++) { 
       Cells road = getPathTo(node, doors.get(i), doors.get(i+1)); 
@@ -299,8 +421,10 @@ class Database {
         for (Cell point : road) {
           Cells neighbor = getNeighboring(node, node[point.x][point.y], null);
           for (Cell n : neighbor) {
-            if (objects[n.x][n.y]==EMPTY)
-              map[n.x][n.y]=ROAD;
+            if (objects[n.x][n.y]==EMPTY) {
+              if (isPlaceEnviroment(terrain[n.x][n.y]))
+                roads[n.x][n.y]=ROAD;
+            }
           }
         }
       }
@@ -318,7 +442,7 @@ class Database {
         if (y!=sizeY-1)
           exit = node[int(random(border, node.length-(1+border)))][node[0].length-1];
       } else if (i==3) {//выход влево
-        if (x!=0)
+        if (x!=0) //выход вправо
           exit = node[0][int(random(border, node[0].length-(1+border)))];
       }
       if (exit!=null) {
@@ -327,10 +451,20 @@ class Database {
           for (Cell point : road) {
             Cells neighbor = getNeighboring(node, node[point.x][point.y], null);
             for (Cell n : neighbor) {
-              if (objects[n.x][n.y]==EMPTY)
-                map[n.x][n.y]=ROAD;
+              if (objects[n.x][n.y]==EMPTY) {
+                if (isPlaceEnviroment(terrain[n.x][n.y]))
+                  roads[n.x][n.y]=ROAD;
+              }
             }
           }
+        }
+      }
+    }
+    for (int ix=0; ix<roads.length; ix++) { //заполнение всех сеток
+      for (int iy=0; iy<roads[0].length; iy++) {
+        if (roads[iy][ix]!=EMPTY) {
+          if (isPlaceEnviroment(terrain[iy][ix]))
+            terrain[iy][ix]=TERRAIN_ROAD;
         }
       }
     }
@@ -338,7 +472,7 @@ class Database {
   void generateLights(Cell[][] node, int [][] objects, int [][] grid_roads, int count) {
     Cells roads = getRoads(node, grid_roads);
     for (int p =0; p<count; p++) {
-      Cell road = roads.get(int(random(roads.size()-1)));
+      Cell road = roads.get(int(random(roads.size()-1)));  //ошибка
       Cells neighbor = getNeighboring(node, node[road.x][road.y], null);
       if (neighbor.size()==8) {
         boolean place = true;
@@ -347,7 +481,7 @@ class Database {
             place=false;
         }
         if (place) {
-          objects[road.x][road.y]=LIGHT;
+          objects[road.x][road.y]=BONFIRE;
           grid_roads[road.x][road.y]=EMPTY;
         }
       }
@@ -357,49 +491,70 @@ class Database {
     Cells roads = getRoads(node, grid_roads);
     for (int p =0; p<count; p++) {
       Cell road = roads.get(int(random(roads.size()-1)));
-      objects[road.x][road.y]=Database.FRAGMENT;
+      objects[road.x][road.y]=AGData.FRAGMENT;
     }
   }
-  void generateEnviroments(Cell[][] node, int [][] objects, int [][] grid_roads) {
+  void generateEnviroments(Cell[][] node, int [][] objects, int [][] grid_roads, int [][] terrain) {
     Cells roads = getRoads(node, grid_roads);
+    boolean placeOk;
     for (Cell road : roads) { 
       Cells neighbor = getNeighboring(node, node[road.x][road.y], null);
       for (Cell n : neighbor) {
+        placeOk=false;
         if (objects[n.x][n.y]==EMPTY) {  //размещение объектов окружения
-          if (!roads.contains(n)) {
-            if (!isNeighboring(node, objects, n.x, n.y, WALL)) {
-              int place =int(random(4));
-              if (place==1) 
-                objects[n.x][n.y]=TREE;
+          if (isPlaceEnviroment(terrain[n.x][n.y])) {
+            if (!roads.contains(n)) {
+              if (!isNeighboring(node, objects, n.x, n.y, WALL)) {
+                int place =int(random(4));
+                if (place==1) 
+                  placeOk=true;
+                if (placeOk) {
+                  int treeType = int(random(2));
+                  if (treeType==0)
+                    objects[n.x][n.y]=TREE1;
+                  else 
+                  objects[n.x][n.y]=TREE2;
+                }
+              }
             }
           }
         }
       }
     }
     for (int ix=0; ix<objects.length; ix++) { //заполнение всех сеток
-      for (int iy=0; iy<objects[0].length; iy++) {
-        if (!isNeighboring(node, objects, ix, iy, WALL) && objects[ix][iy]==EMPTY && grid_roads[ix][iy]==EMPTY) {
-          if (ix==0 || iy==0 || ix==objects.length-1 || iy==objects[0].length-1)
-            objects[ix][iy]=TREE;
-          else {
+      for (int iy=0; iy<objects[0].length; iy++) {     
+        if (!isNeighboring(node, objects, ix, iy, WALL) && objects[ix][iy]==EMPTY && grid_roads[ix][iy]==EMPTY && isPlaceEnviroment(terrain[ix][iy])) {
+          placeOk = false;
+          if (ix==0 || iy==0 || ix==objects.length-1 || iy==objects[0].length-1) {
+            placeOk = true;
+          } else {
             int place =int(random(2));
             if (place==1) 
-              objects[ix][iy]=TREE;
+              placeOk = true;
+          }
+          if (placeOk) {
+            int treeType = int(random(2));
+            if (treeType==0)
+              objects[ix][iy]=TREE1;
+            else 
+            objects[ix][iy]=TREE2;
           }
         }
       }
     }
   }
-  void placeRandomBuildings(Cell [][] node, int [][] map, int count) {    //размещает заданнное count количество построек в случайном порядке 
+  void placeRandomBuildings(Cell [][] node, int [][] objects, int [][] terrain, int [][] roof, int count, int groundwork_size) {    //размещает заданнное count количество построек в случайном порядке 
     int i=0, stage=0;
     while (i<count) {
-      int building = int(random(buildingData.size()));
-      int [][] build = buildingData.get(building);
-      int placeX = 1+int(random(map.length-build.length-2));
-      int placeY = 1+int(random(map[0].length-build[0].length-2));
-      if (isPlaceBuildingAllow(map, build, placeX, placeY)) {
-        if (isClear(map, build, placeX, placeY)) {
-          placeBuilding(node, map, build, placeX, placeY);
+      int building = int(random(objectsData.size()));
+      int [][] buildObjects = objectsData.get(building), 
+        buildTerrain = terrainData.get(building), 
+        buildRoof = roofData.get(building);
+      int placeX = 1+int(random(objects.length-buildObjects.length-2)), 
+        placeY = 1+int(random(objects[0].length-buildObjects[0].length-2));
+      if (isPlaceBuildingAllow(objects, buildObjects, placeX, placeY)) {
+        if (isClear(objects, buildObjects, placeX, placeY)) {
+          placeBuilding(node, buildObjects, buildTerrain, buildRoof, objects, terrain, roof, placeX, placeY);
           i++;
         }
       }
@@ -423,20 +578,7 @@ class Database {
       }
     }
   }
-  PImage getTile(int id) {
-    switch (id) {
-    case 1: 
-      return floor1;
-    case 2: 
-      return floor2;
-    case 3: 
-      return floor3;
-    case 4: 
-      return floor4;
-    default :
-      return floor0;
-    }
-  }
+
   Cell [][] getNewNodes(int sizeX, int sizeY) {
     Cell [][] nodes = new Cell [sizeX][sizeY];
     for (int ix=0; ix<sizeX; ix++) {   //заполнение графа
@@ -445,15 +587,6 @@ class Database {
     } 
     return nodes;
   }
-  void landSumRoads(int [][] roads, int [][] land) {
-    for (int ix=0; ix<roads.length; ix++) { //заполнение всех сеток
-      for (int iy=0; iy<roads[0].length; iy++) {
-        if (roads[iy][ix]!=EMPTY)
-          land[iy][ix]=3;
-      }
-    }
-  }
-
   void generatePortals(Cell[][] node, int [][] objects, int [][] grid_roads, int x, int y, int sizeX, int sizeY) {   //размещение порталов
     Cells all_borders = getCellsFreePlace(node, grid_roads).getCellsIsBorders(node.length, node[0].length);
     int sX = node.length-1, sY=node[0].length-1;
@@ -477,7 +610,7 @@ class Database {
         if (place) 
           objects[cell.x][cell.y]=PORTAL;  //размещает портал  <<<вот здесь
         else 
-        objects[cell.x][cell.y]=TREE;
+        objects[cell.x][cell.y]=TREE1;
         grid_roads[cell.x][cell.y]=EMPTY;
       }
     }
@@ -509,30 +642,33 @@ class Database {
      }
      
      */
-    int [][] grid_land = new int [sizeX][sizeY]; //сетка ландшафта/тайлов
+    int buildings_groundwork_size=1, 
+      buildings_max_count=10, 
+      fragments_max_count=10; //размер фундамента
+    int [][] terrain = new int [sizeX][sizeY]; //сетка ландшафта/тайлов
     int [][] grid_objects = new int [sizeX][sizeY]; //сетка объектов
     int [][] grid_roads = new int [sizeX][sizeY]; //сетка дорог
+    int [][] grid_roof = new int [sizeX][sizeY]; //сетка дорог
     for (int ix=0; ix<sizeX; ix++) { //заполнение всех сеток
-      for (int iy=0; iy<sizeY; iy++) 
-        grid_land[ix][iy]=grid_objects[ix][iy]=grid_roads[ix][iy]=EMPTY;
+      for (int iy=0; iy<sizeY; iy++)
+        terrain[ix][iy]=grid_objects[ix][iy]=grid_roads[ix][iy]=grid_roof[ix][iy]=EMPTY;
     }
     //генерация ландшафта  
-    generateLandArea(grid_land, 1, 100, 120);
-    generateLandArea(grid_land, 2, 80, 100);
+    generateLandArea(terrain, 1, 100, 120);
+    generateLandArea(terrain, 2, 80, 100);
     //генерация построек
-    placeRandomBuildings(nodes, grid_objects, 10);  //размещение построек
-    generateRoads(nodes, grid_roads, grid_objects, getDoors(nodes, grid_objects), x, y, sizeGlobalX, sizeGlobalY);  //размещение дорог и тропинок
-    landSumRoads(grid_roads, grid_land); //наложение массива дорог на массив местности (массив местности редактируется)
-    generateEnviroments(nodes, grid_objects, grid_roads);  //размещение объектов окружения (деревья горы и т.д.)
-    generatePortals(nodes, grid_objects, grid_roads, x, y, sizeGlobalX, sizeGlobalY);  //размещение порталов
+    placeRandomBuildings(nodes, grid_objects, terrain, grid_roof, buildings_max_count, buildings_groundwork_size);  //размещение построек
+    generateRoads(nodes, grid_roads, grid_objects, terrain, getDoors(nodes, grid_objects), x, y, sizeGlobalX, sizeGlobalY);  //размещение дорог и тропинок
+    generateEnviroments(nodes, grid_objects, grid_roads, terrain);  //размещение объектов окружения (деревья горы и т.д.)
+    generatePortals(nodes, grid_objects, grid_roads, x, y, sizeGlobalX, sizeGlobalY);  //размещение порталов (4 шт.)
     generateLights(nodes, grid_objects, grid_roads, int(random(10)));  //размещение источников света
-    generateFragments(nodes, grid_objects, grid_roads, int(random(10))); //генерация фрагментов
-    return new AGRoom(game, x, y, sizeX, sizeY, grid_land, grid_roads, grid_objects, name);  //создание комнаты
+    generateFragments(nodes, grid_objects, grid_roads, int(random(fragments_max_count))); //генерация фрагментов
+    return new AGRoom(game, x, y, sizeX, sizeY, terrain, grid_roof, grid_roads, grid_objects, name);  //создание комнаты
   }
 }
-int [][] getAdjBuilding(int [][] building, int n) {  //корректирует область размещения, увеличивает ее на n с каждой стороны
-  int [][] newBuild = new int [building.length+n+1][building[0].length+n+1];
-  clearGrid(newBuild);
+int [][] setBorderjBuilding(int [][] building, int n, int value) {  //корректирует область размещения, увеличивает ее на n с каждой стороны
+  int [][] newBuild = new int [building.length+n*2][building[0].length+n*2];
+  setGrid(newBuild, value);
   for (int ix=0; ix<building.length; ix++) {
     for (int iy=0; iy<building[ix].length; iy++)
       newBuild[n+ix][n+iy]=building[ix][iy];
@@ -545,20 +681,25 @@ boolean isPlaceBuildingAllow(int [][] map, int [][] building, int x, int y) {
 boolean isClear(int [][] map, int [][] building, int x, int y) {
   for (int ix=0; ix<building.length; ix++) {
     for (int iy=0; iy<building[ix].length; iy++) {
-      if (map[x+ix][y+iy]!=Database.EMPTY)
+      if (map[x+ix][y+iy]!=AGData.EMPTY)
         return false;
     }
   }
   return true;
 }
-void placeBuilding(Cell [][] node, int [][] map, int [][] building, int x, int y) {
-  for (int ix=0; ix<building.length; ix++) {
-    for (int iy=0; iy<building[ix].length; iy++) {
-      if (building[ix][iy]!=Database.EMPTY) {
-        map[x+ix][y+iy]=building[ix][iy];
-        if (building[ix][iy]==Database.WALL)
-          node[x+ix][y+iy].solid=true;
-      }
+
+boolean isPlaceEnviroment(int type) {
+  return (AGData.TERRAIN_GRASS1==type || AGData.TERRAIN_GRASS2==type || AGData.TERRAIN_GRASS3==type);
+}
+void placeBuilding(Cell [][] node, int [][] buildObjects, int [][] buildTerrain, int [][] buildRoof, 
+  int [][] objects, int [][] terrain, int [][] roof, int x, int y) {
+  for (int ix=0; ix<buildObjects.length; ix++) {
+    for (int iy=0; iy<buildObjects[ix].length; iy++) {
+      objects[x+ix][y+iy]=buildObjects[ix][iy];
+      terrain[x+ix][y+iy]=buildTerrain[ix][iy];
+      roof[x+ix][y+iy]=buildRoof[ix][iy];
+      if (buildObjects[ix][iy]==AGData.WALL || buildObjects[ix][iy]==AGData.OBJ_CONTAINER)
+        node[x+ix][y+iy].solid=true;
     }
   }
 }
@@ -566,20 +707,14 @@ int [][] createGrid(int sizeX, int sizeY) {
   int [][] view = new int [sizeX][sizeY];
   for (int ix=0; ix<sizeX; ix++) {
     for (int iy=0; iy<sizeY; iy++)
-      view[ix][iy]=-1;
+      view[ix][iy]=AGData.NULL;
   }
   return view;
 }
-void clearGrid(int [][] grid) {
+void setGrid(int [][] grid, int value) {
   for (int ix=0; ix<grid.length; ix++) {
     for (int iy=0; iy<grid[0].length; iy++) 
-      grid[ix][iy]=Database.EMPTY;
-  }
-}
-void nullGrid(int [][] grid) {
-  for (int ix=0; ix<grid.length; ix++) {
-    for (int iy=0; iy<grid[0].length; iy++) 
-      grid[ix][iy]=Database.NULL;
+      grid[ix][iy]=value;
   }
 }
 void frozenGrid(int [][] grid) {
@@ -702,7 +837,7 @@ Cells getPortals(Cell [][] node, int [][] map) {   //возвращает спи
   Cells portals = new Cells();
   for (int ix=0; ix<map.length; ix++) {
     for (int iy=0; iy<map[ix].length; iy++) {
-      if (map[ix][iy]==Database.PORTAL) 
+      if (map[ix][iy]==AGData.PORTAL) 
         portals.add(node[ix][iy]);
     }
   }
@@ -712,7 +847,7 @@ Cells getDoors(Cell [][] node, int [][] map) {   //возвращает спис
   Cells doors = new Cells();
   for (int ix=0; ix<map.length; ix++) {
     for (int iy=0; iy<map[ix].length; iy++) {
-      if (map[ix][iy]==Database.DOOR) 
+      if (map[ix][iy]==AGData.DOOR) 
         doors.add(node[ix][iy]);
     }
   }
@@ -722,7 +857,7 @@ Cells getRoads(Cell [][] node, int [][] map) {   //возвращает спис
   Cells roads= new Cells();
   for (int ix=0; ix<map.length; ix++) {
     for (int iy=0; iy<map[ix].length; iy++) {
-      if (map[ix][iy]==Database.ROAD) 
+      if (map[ix][iy]==AGData.ROAD) 
         roads.add(node[ix][iy]);
     }
   }
@@ -783,7 +918,7 @@ class Cell {
   final int x, y;
   float g, f, h;
   Cell parent;
-  boolean solid, through, open, roof, door;
+  boolean solid, through, open, door;
   int transparent, temperature; 
 
   Cell(int x, int y) {
@@ -791,7 +926,7 @@ class Cell {
     this.y=y;
     g=f=h=0;
     parent = null;
-    solid=roof=open=door=false;
+    solid=open=door=false;
     through=true;
     transparent = game.date.getDarknessValue();
     temperature = 22;

@@ -1,0 +1,187 @@
+{
+    "enviroments": [
+        {
+            "id": 1,
+            "name": "стена",
+            "sprite": "wall1",
+            "through": false
+        },
+	{
+            "id": 38,
+            "name": "стена",
+            "sprite": "wall2",
+            "through": false
+        },
+        {
+            "id": 13,
+            "name": "дерево",
+            "sprite": "tree1",
+            "through": false
+        },
+        {
+            "id": 14,
+            "name": "дерево",
+            "sprite": "tree2",
+            "through": false
+        },
+        {
+            "id": 20,
+            "name": "кровать",
+            "sprite": "bed",
+            "through": true
+        }
+    ],
+    "doors": [
+        {
+            "id": 2,
+            "name": "дверь",
+            "sprite": "door"
+        }
+    ],
+    "light": [
+        {
+            "id": 4,
+            "name": "костёр",
+            "sprite": "bonfire",
+            "light": 100
+        },
+        {
+            "id": 5,
+            "name": "светильник",
+            "sprite": "lamp",
+            "light": 180
+        }
+    ],
+    "containers": [
+        {
+            "id": 27,
+            "name": "ящик",
+            "sprite": "container",
+            "capacity": 100,
+            "through": true
+        },
+        {
+            "id": 28,
+            "name": "шкаф",
+            "sprite": "wardrobe",
+            "capacity": 400,
+            "through": false
+        }
+    ],
+    "workbenches": [
+        {
+            "id": 49,
+            "name": "верстак",
+            "sprite": "workbench",
+            "products": [
+                
+            ],
+            "through": true
+        }
+    ],
+    "portals": [
+        {
+            "id": 7,
+            "name": "портал",
+            "sprite": "portal"
+        }
+    ],
+    "traces": [
+        {
+            "id": 71,
+            "name": "следы",
+            "sprite": "trace"
+        }
+    ],
+    "markets": [
+        {
+            "id": 10,
+            "name": "пункт боеприпасов",
+            "sprite": "market",
+            "items": [
+                {
+                    "id": 50,
+                    "count": 5
+                },
+                {
+                    "id": 51,
+                    "count": 5
+                },
+                
+            ]
+        },
+        {
+            "id": 44,
+            "name": "пункт оружейный",
+            "sprite": "market",
+            "items": [
+                {
+                    "id": 30,
+                    "count": 5
+                },
+                {
+                    "id": 31,
+                    "count": 5
+                },
+                
+            ]
+        },
+        {
+            "id": 45,
+            "name": "пункт снаряжения",
+            "sprite": "market",
+            "items": [
+                {
+                    "id": 64,
+                    "count": 5
+                },
+                {
+                    "id": 60,
+                    "count": 5
+                },
+                {
+                    "id": 63,
+                    "count": 5
+                },
+                {
+                    "id": 65,
+                    "count": 5
+                },
+                {
+                    "id": 62,
+                    "count": 5
+                }
+            ]
+        },
+        {
+            "id": 46,
+            "name": "пункт продовольств.",
+            "sprite": "market",
+            "items": [
+                {
+                    "id": 10,
+                    "count": 5
+                },
+                {
+                    "id": 11,
+                    "count": 5
+                },
+                {
+                    "id": 12,
+                    "count": 5
+                }
+            ]
+        },
+        {
+            "id": 47,
+            "name": "пункт медицинский",
+            "sprite": "market",
+            "items": [
+                {
+                    "id": 102,
+                    "count": 2
+                }
+            ]
+        }
+    ]
+}

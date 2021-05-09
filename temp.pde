@@ -1,5 +1,36 @@
 /*
+    String input = dialog.showTextInputDialog("введите количество:");
+        if (input!=null) {
+          if (int(input)>0) {
+            count=int(input); 
+            cost = d.getItem(item).getInt("cost")*count;
+            buy= true;
+          }
+          clearAllLists();
+          game.player.updateNeighbor();
+        }
 
+  void placeRandomBuildings(Cell [][] node, int [][] objects, int [][] terrain, int [][] roof, int count, int groundwork_size) {    //размещает заданнное count количество построек в случайном порядке 
+    int i=0, stage=0;
+    while (i<count) {
+      int building = int(random(objectsData.size()));
+      int [][] buildObjects = setBorderjBuilding(objectsData.get(building), groundwork_size, NULL), 
+        buildTerrain = setBorderjBuilding(terrainData.get(building), groundwork_size, TERRAIN_STONE), 
+        buildRoof = setBorderjBuilding(roofData.get(building), groundwork_size, EMPTY);
+      int placeX = 1+int(random(objects.length-buildObjects.length-2)), 
+        placeY = 1+int(random(objects[0].length-buildObjects[0].length-2));
+      if (isPlaceBuildingAllow(objects, buildObjects, placeX, placeY)) {
+        if (isClear(objects, buildObjects, placeX, placeY)) {
+          placeBuilding(node, buildObjects, buildTerrain, buildRoof, objects, terrain, roof, placeX, placeY);
+          i++;
+        }
+      }
+      stage++;
+      if (stage>count*100)
+        i=count;
+    }
+  }
+ 
     void placeRandomBuildings(Cell [][] node, int [][] map, int count) {
    int i=0;
    for (int p =0; p<count; p++) {

@@ -44,15 +44,16 @@ abstract class AGObject {
     translate(room.window.size_grid/2, room.window.size_grid/2);
     rotate(radians(angle));
   }
-  abstract PImage getSprite(int id);
+  PImage getSprite(int type) {
+    return d.getObjectSprite(type);
+  }
+  String getName() {
+    return d.getObject(type).getString("name");
+  }
   void display() {
     if (room.node[x][y].open) {
       beginDisplay();
       draw();
-      if (mainList.select!=null) {
-        if (mainList.select.id==id)
-          drawSelected();
-      }
       endDisplay();
     }
   }
@@ -80,141 +81,135 @@ abstract class AGObject {
     popStyle();
   }
   boolean getSolid() {
-    return false;
+    if (d.getObject(type)!=null) { 
+      if (d.getObject(type).isNull("solid"))
+        return false;
+      else
+        return d.getObject(type).getBoolean("solid");
+    } else
+      return false;
   }
   boolean getThrough() {
-    return true;
+    if (d.getObject(type)!=null) { 
+      if (d.getObject(type).isNull("through"))
+        return true;
+      else
+        return d.getObject(type).getBoolean("through");
+    } else
+      return true;
   }
-  abstract String getName();
 }
-
+class AGLayer extends AGObject {
+  AGLayer(AGRoom room, int type, int x, int y) {
+    super(room, type, x, y);
+  }
+  Actions getActions() {
+    Actions actions = new Actions();
+    actions.add(getLayerInfo);
+ 
+    return actions;
+  }
+  String getName() {
+    return d.getTerrain(type).getString("name");
+  }
+  boolean getSolid() {
+    return d.getTerrain(type).getBoolean("solid");
+  }
+  PImage getSprite(int type) {
+    return d.getTerrainSprite(type);
+  }
+}
 class AGTrace extends AGObject {
   int entity;
-  AGTrace(AGRoom room, int x, int y, int entity) {
-    super(room, 0, x, y);
+  AGTrace(AGRoom room, int type, int x, int y, int entity) {
+    super(room, type, x, y);
     this.entity = entity;
   }
   String getName() {
     if (entity==0)
-      return "следы "+room.window.player.getName();
+      return d.getObject(type).getString("name")+" "+room.window.player.getName();
     else
-      return "следы "+d.getEntity(entity).getString("name");
-  }
-  PImage getSprite(int type) {
-    return trace;
+      return d.getObject(type).getString("name")+" "+d.getEntity(entity).getString("name");
   }
 }
 
-abstract class AGEnviroment extends AGObject {
-  boolean through;
+class AGEnviroment extends AGObject {
 
-  AGEnviroment(AGRoom room, int type, int x, int y, boolean through) {
-    super(room, type, x, y);
-    this.through=through;
-  }
   AGEnviroment(AGRoom room, int type, int x, int y) {
-    this(room, type, x, y, false);
+    super(room, type, x, y);
   }
   boolean getSolid() {
     return true;
   }
-  PImage getSprite() {
-    return null;
-  }
-  boolean getThrough() {
-    return through;
-  }
-  String getName() {
-    return "дерево";
-  }
 }
-class AGTree extends AGEnviroment {
 
-  AGTree(AGRoom room, int type, int x, int y) {
-    super(room, type, x, y);
-  }
-  PImage getSprite(int type) {
-    switch (type) {
-    case 1: 
-      return tree1;
-    case 2: 
-      return tree2;
-    default : 
-      return null;
-    }
-  }
-  String getName() {
-    return "дерево";
-  }
-}
 class AGWall extends AGEnviroment {
   String note;
   AGWall (AGRoom room, int type, int x, int y) {
     super(room, type, x, y);
     note=null;
   }
-  PImage getSprite(int type) {
-    return wall;
-  }
   Actions getActions() {
     Actions actions = super.getActions();
+    actions.add(objectDestroy);
     if (note!=null) 
       actions.add(noteRead);
     return actions;
   }
   void draw() {
-    if (room.terrain[room.window.player.x][room.window.player.y]!=4 && (room.buildings[x][y+1]==1 || room.node[x][y+1].roof)) {
+    if (room.roof[x][y]==AGData.ROOF_ON) {
+
       pushStyle();
       tint(white, 255);
-      image(spr_roof, -room.window.size_grid/2, -room.window.size_grid/2);
+      if (room.window.player.matrixView[x][y]==-1) 
+        image(d.roof, -room.window.size_grid/2, -room.window.size_grid/2);
+      else 
+      image(d.above, -room.window.size_grid/2, -room.window.size_grid/2);
       popStyle();
-    } else
+    } else {
       image(sprite, -room.window.size_grid/2, -room.window.size_grid/2);
-  }
-  String getName() {
-    return "стена";
+      if (note!=null) {
+        fill(white);
+        stroke(black);
+        rect(-8, -6, 16, 10);
+      }
+    }
   }
 }
-class AGDoor extends AGEnviroment implements updates {
-  PImage sprite_open;
-  AGObject user;
-  boolean lock;
+class AGDoor extends AGEnviroment {
+  boolean lock, open;
+
   AGDoor(AGRoom room, int type, int x, int y) {
     super(room, type, x, y);
-    sprite_open = door_open;
-    user = null;
-    lock=false;
+    lock=open=false;
   }
   Actions getActions() {
     Actions actions = super.getActions();
-    if (user==null) {
-      if (lock)
-        actions.add(new AGAction ("открыть", actionDoor));
-      else
-        actions.add(new AGAction ("запереть", actionDoor));
+
+    if (lock) 
+      actions.add(new AGAction ("отпереть", unlockDoor));
+    else {
+      if (open)
+        actions.add(new AGAction ("закрыть", closeDoor));
+      else {
+        actions.add(new AGAction ("запереть", lockDoor));
+        actions.add(new AGAction ("открыть", openDoor));
+      }
     }
     return actions;
   }
-  PImage getSprite(int type) {
-    return door;
-  }
-  void tick() {
-    user = room.entities.getEntityList().getAGObject(x, y, this);
-  }
   void draw() {
-    if (user!=null) {
-      room.node[x][y].solid=false;
-      image(sprite_open, -room.window.size_grid/2, -room.window.size_grid/2);
-    } else {
-      room.node[x][y].solid=true;
+    if (lock || (!lock && !open))
       image(sprite, -room.window.size_grid/2, -room.window.size_grid/2);
-    }
   }
-  boolean isOpen() {
-    return !lock && user==null;
+  boolean getThrough() {
+    return open;
   }
-  String getName() {
-    return "дверь";
+  boolean getSolid() {
+    if (!lock) {
+      return !open;
+    } else
+      return true;
   }
 }
 class AGLight extends AGObject {
@@ -233,14 +228,8 @@ class AGLight extends AGObject {
       actions.add(lightOn);
     return actions;
   }
-  PImage getSprite(int type) {
-    return bonfire;
-  }
   boolean getSolid() {
     return true;
-  }
-  String getName() {
-    return "фонарь";
   }
 }
 class AGBonfire extends AGLight {
@@ -249,9 +238,8 @@ class AGBonfire extends AGLight {
     super(room, type, x, y, light);
     this.maxTemperature=maxTemperature;
   }
-
-  String getName() {
-    return "костер";
+  boolean getSolid() {
+    return false;
   }
 }
 class AGContainer extends AGObject implements capacity {
@@ -276,9 +264,6 @@ class AGContainer extends AGObject implements capacity {
     }
     return actions;
   }
-  PImage getSprite(int type) {
-    return container;
-  }
   Items getItems() {
     return items;
   }
@@ -287,9 +272,6 @@ class AGContainer extends AGObject implements capacity {
   }
   boolean getSolid() {
     return true;
-  }
-  String getName() {
-    return "контейнер";
   }
 }
 class AGEntity extends AGObject implements updates {
@@ -300,13 +282,13 @@ class AGEntity extends AGObject implements updates {
     hp, //здоровье и максимальное здоровье
     armor, //класс брони
     force, //класс оружия
-    exp, 
+    exp, //опыт
     accuracy; //ловкость 
   int character; //характер сущности
   Cell target;   //цель, условный чек поинт куда держит путь сущность
   AGTraces trace; //список следов
   int side; //принадлежность к стороне
-  final static int ENTITY =0, OBJECT=1, TRACE=2;
+  final static int ENTITY =0, OBJECT=1, TRACE=2, TERRAIN=3;
   int stun; //счетчик оглушения
 
   AGEntity(AGRoom room, int type, int x, int y, int atack, int side, int character, int hp, int ac, int wc) {
@@ -391,11 +373,11 @@ class AGEntity extends AGObject implements updates {
       angle=ALIVE;
       room.node[x][y].through=getThrough();
       room.node[x][y].solid=getSolid();
-      nullGrid(matrixView);
+      setGrid(matrixView, AGData.NULL);
       room.adjView(this, view, matrixView, this==room.window.player); 
       JSONObject ch = d.getCharacter(character);
       Cells neighbors = getNeighboring(room.node, room.node[x][y], null);   
-      if (d.getEntityClass(type)==Database.MONSTER) {
+      if (d.getEntityClass(type)==AGData.MONSTER) {
         Cell targetTemperature = null;
         for (Cell part : neighbors) {
           if (room.temperature[part.x][part.y]>35) 
@@ -561,7 +543,7 @@ class AGEntity extends AGObject implements updates {
   void move(int x, int y) {
     //создается новый след
     if (!trace.hasCell(this.x, this.y))
-      trace.add(new AGTrace(room, this.x, this.y, type));
+      trace.add(new AGTrace(room, AGData.TRACE, this.x, this.y, type));
     //удаляем последний свой след
     if (trace.size()>=25)
       trace.remove(0);
@@ -608,19 +590,20 @@ class AGEntity extends AGObject implements updates {
             if (!neighbors.contains(trace))
               neighbors.add(trace);
           }
-        } else
-          if (shearch == OBJECT) {
-            object  = room.getAllObjectsNotEntitiesNotTraces().getAGObject(gx, gy);
+        } else if (shearch == TERRAIN) {
+          if (!neighbors.contains(room.layer[gx][gy]) && room.getAllObjectsNotTraces().getAGObject(gx, gy)==null) 
+            neighbors.add(room.layer[gx][gy]);
+        } else if (shearch == OBJECT) {
+          object  = room.getAllObjectsNotEntitiesNotTraces().getAGObject(gx, gy);
+          if (object!=this && !neighbors.contains(object))
+            neighbors.add(object);
+        } else  if (shearch == ENTITY) {
+          object  = room.entities.getEntityList().getAGObject(gx, gy);
+          if (object!=null) {
             if (object!=this && !neighbors.contains(object))
               neighbors.add(object);
-          } else 
-          if (shearch == ENTITY) {
-            object  = room.entities.getEntityList().getAGObject(gx, gy);
-            if (object!=null) {
-              if (object!=this && !neighbors.contains(object))
-                neighbors.add(object);
-            }
           }
+        }
         if (room.node[gx][gy].solid && !room.node[gx][gy].through)  //!=shearch != ENTITY блокировка видимости н работает на существ
           break;
         if (object!=null) {
@@ -733,7 +716,7 @@ class AGHuman extends AGEntity implements capacity {
   boolean isAllowAtack() {
     int weapon = parts.get(7);  //проверка слота руки
     if (weapon!=-1) {           //при наличии оружия
-      if (d.getItemClass(weapon)==Database.WEAPON_FIRE) {
+      if (d.getItemClass(weapon)==AGData.WEAPON_FIRE) {
         int ammo = d.getItem(weapon).getInt("ammo");
         if (items.hasValue(ammo)) {
           items.removeValue(ammo);
@@ -764,7 +747,7 @@ class AGHuman extends AGEntity implements capacity {
     int weapon = parts.get(7);
     if (weapon!=-1) {
       int itemClass = d.getItemClass(weapon);
-      if (itemClass == Database.WEAPON_FIRE)
+      if (itemClass == AGData.WEAPON_FIRE)
         room.bullets.add(new Bullet(new PVector(x, y), enemy.x, enemy.y, null));
     }
   }
@@ -776,13 +759,13 @@ class AGHuman extends AGEntity implements capacity {
     Items armors = new Items();
     for (int item : items) {
       int itemClass = d.getItemClass(item);
-      if (itemClass==Database.WEAPON_HOLD) 
+      if (itemClass==AGData.WEAPON_HOLD) 
         weapons.append(item);
-      else if (itemClass==Database.WEAPON_FIRE) {
+      else if (itemClass==AGData.WEAPON_FIRE) {
         int ammo = d.getItem(item).getInt("ammo");
         if (items.hasValue(ammo)) 
           weapons.append(item);
-      } else if (itemClass==Database.ARMOR) {
+      } else if (itemClass==AGData.ARMOR) {
         armors.append(item);
       }
     }
@@ -815,12 +798,12 @@ class AGPlayer extends AGHuman {
   Timer sprint;
   AGObjects entities;
   int hpMax;
-  int hunger, thirst;
+  int hunger, thirst, xenofrenia;
   AGPlayer(int side, String name, int hp, int wc, int [] items) {
     super(null, 0, -1, -1, side, -1, hp, wc, items);
     this.name=name;
     entities = new AGObjects();
-    thirst=hunger=0;
+    thirst=hunger=xenofrenia=0;
     hpMax=hp;
   }
   int getHpMax() {
@@ -841,10 +824,14 @@ class AGPlayer extends AGHuman {
     return name;
   }
   PImage getSprite(int type) {
-    return actor;
+    return d.playerSprite;
   }
   void draw() {
-    super.draw();  
+    if (thirst>80) {
+      if (frameCount%30<30/2) 
+        super.draw();
+    } else
+      super.draw();  
     if (hp>0)
       drawText(getName(), yellow);
   }
@@ -859,13 +846,17 @@ class AGPlayer extends AGHuman {
       room.window.printConsole("вы страдаете от обезвоживания и пропускаете ход", false);
       room.tick();
     }
-    if (room.window.date.minute%(int(map(getItemsAllWeight(), 0, capacity, 20, 0))+1)==0) { //чем тяжелее груз у игрока тем быстрее происходит обезвоживание
+    if (room.window.date.minute%(constrain(int(map(getItemsAllWeight(), 0, capacity, 20, 1)), 1, 9999))==0) { //чем тяжелее груз у игрока тем быстрее происходит обезвоживание
       if (thirst<100)
         thirst++;
     }
     if (room.window.date.minute%30==0) {
       if (hunger<100) 
         hunger++;
+    }
+    if (items.getCount(AGData.FRAGMENT)>0) { 
+      if (room.window.date.minute%10==0 && xenofrenia<100)
+        xenofrenia++;
     }
   }
   void updateStats() {
@@ -877,6 +868,7 @@ class AGPlayer extends AGHuman {
     AGObjects list  = new AGObjects();
     AGObjects entityAllList = getAllNeighbors(ENTITY, view);
     AGObjects objectsList= getAllNeighbors(OBJECT, 1);
+    AGObjects terrainList= getAllNeighbors(TERRAIN, 1);
     AGObjects tracesList= getAllNeighbors(TRACE, 1);
     AGObjects entityList = entityAllList.getEnemyList(this);
     if (entityList.size()>0) {
@@ -895,6 +887,9 @@ class AGPlayer extends AGHuman {
       list.addAll(objectsList);
       list.addAll(tracesList);
       loadMainListObjects(list);
+    } else if (menuActions.select.event.equals("terrain")) {
+      list.addAll(terrainList);
+      loadMainListLayers(list);
     }
   }
   void lowAmmo() {
@@ -946,11 +941,16 @@ class AGPlayer extends AGHuman {
         if (getApplyDiagonal(room.node, this.x, this.y, x, y, false)) {
           if (room.node[x][y].door) {
             AGDoor door = (AGDoor)room.doors.getAGObject(x, y);
-            if (door.isOpen())
+            if (!door.lock) {
               move =true;
+              door.open = true;
+            } else
+              game.printConsole("дверь заперта, перемещение невозможно", false);
           } else {
             if (!room.node[x][y].solid)
               move=true;
+            else
+              game.printConsole("впереди препятствие, перемещение невозможно", false);
           }
         }
         if (move) {
@@ -1162,15 +1162,6 @@ class AGPortal extends AGObject {
     super(room, type, x, y);
     room.roads[x][y]=0;   //создает флаг для массива дорог
   }
-  PImage getSprite(int type) {
-    return portal;
-  }
-  boolean getThrough() {
-    return false;
-  }
-  String getName() {
-    return "портал";
-  }
 }
 
 class AGItem extends AGObject {
@@ -1198,5 +1189,28 @@ class AGItem extends AGObject {
     super.draw();
     if (count>1)
       drawCount(count);
+  }
+}
+class AGMarket extends AGEnviroment {
+  Items items;
+  int update;
+  AGMarket(AGRoom room, int type, int x, int y, int [] items) {
+    super(room, type, x, y);
+    update = 50; //периодичность обновления ассортимента 
+    this.items = new Items();
+    for (int item : items)
+      this.items.append(item);
+  }
+  Actions getActions() {
+    Actions actions = super.getActions();
+    for (int item : items.sortId()) {
+      if (items.getCount(item)>1)
+        actions.add(new AGAction (item, "купить ("+items.getCount(item)+") "+d.getItem(item).getString("name")+" ["+
+          d.getItem(item).getInt("cost")+" оск.]", d.getItemSprite(item), buyItem));
+      else
+        actions.add(new AGAction (item, "купить "+d.getItem(item).getString("name")+" ["+
+          d.getItem(item).getInt("cost")+" оск.]", d.getItemSprite(item), buyItem));
+    } 
+    return actions;
   }
 }

@@ -1,13 +1,13 @@
 {
 	
 	"weapons_hold": [
-		{"id": 25, "name": "топор", "wc": 15, "distance": 1, "body": 7,"cost": 25, "weight": 5, "sprite": "hatchet", "accuracy": 4, "purchased":true},
+		{"id": 25, "name": "топор", "wc": 15, "distance": 1, "body": 7,"cost": 20, "weight": 5, "sprite": "hatchet", "accuracy": 4, "purchased":true},
 		{"id": 26, "name": "монтировка", "wc": 10, "distance": 1, "body": 7,"cost": 35, "weight": 6, "sprite": "mount", "accuracy": 2, "purchased":true}
 
 	],
 	"weapons_fire": [
-		{"id": 30, "name": "пистолет", "wc": 22, "distance": 3, "body": 7, "cost": 4750, "weight": 20, "sprite": "pistol", "ammo": 50, "accuracy": 3, "purchased": true},
-		{"id": 31, "name": "карабин", "wc": 45,  "distance": 5, "body": 7, "cost": 10900, "weight": 35, "sprite": "carabine", "ammo": 51, "accuracy": 4, "purchased": false}
+		{"id": 30, "name": "пистолет", "wc": 22, "distance": 3, "body": 7, "cost": 47, "weight": 20, "sprite": "pistol", "ammo": 50, "accuracy": 3, "purchased": true},
+		{"id": 31, "name": "карабин", "wc": 35,  "distance": 5, "body": 7, "cost": 100, "weight": 35, "sprite": "carabine", "ammo": 51, "accuracy": 4, "purchased": false}
 
 	],
 	"armors" : [
@@ -35,12 +35,14 @@
 	
 	],
 	"artefacts": [
-		{"id": 0, "name": "осколок малый", "cost": 500, "weight": 45, "sprite": "fragment", "purchased":false},
-		{"id": 1, "name": "осколок средний", "cost": 1500, "weight": 55, "sprite": "fragment", "purchased":false},
-		{"id": 2, "name": "осколок большой", "cost": 2500, "weight": 70, "sprite": "fragment", "purchased":false}
+		{"id": 99, "name": "осколок", "weight": 1, "sprite": "fragment", "purchased":false},
 
 	],
 	"containers": [
 		{"id": 160, "name": "рюкзак армейский", "body": 4, "capacity": 200, "weight": 5, "sprite": "backpack_armed", "purchased":true}
+	],
+	"other": [
+		{"id": 501, "name": "дерево", "weight": 2, "sprite": "backpack_armed", "purchased":true},
+		{"id": 502, "name": "рюкзак армейский", "weight": 2, "sprite": "backpack_armed", "purchased":true}
 	]
 }

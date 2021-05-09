@@ -22,10 +22,12 @@ void createInterface() {
     .setScrollForeground(white)
     .setScrollBackground(blue);
 
+
+
   mainList=new Listbox(645, 289, 220, 384);
   secondList=new Listbox(868, 289, 220, 384);
   menuPlayer = new RadioButton (645, 1, 444, 29, RadioButton.HORIZONTAL);  //главное меню
-  menuPlayer.addButtons(new SimpleRadioButton [] {new SimpleRadioButton("персонаж", "person"), new SimpleRadioButton("потребности", "need_person"), 
+  menuPlayer.addButtons(new SimpleRadioButton [] {new SimpleRadioButton("персонаж", "person"), new SimpleRadioButton("эффекты", "need_person"), 
     new SimpleRadioButton("местность", "map"), new SimpleRadioButton("мир", "global_map")});
   menuActions = new RadioButton (645, 257, 444, 29, RadioButton.HORIZONTAL);  //меню действий
   menuActions.addButtons(new SimpleRadioButton [] {new SimpleRadioButton("окружение", "enviroment", new Runnable() {
@@ -49,10 +51,10 @@ void createInterface() {
   }
 }
 ), 
-  new SimpleRadioButton("постройки", "build", new Runnable() {
+  new SimpleRadioButton("поверхность", "terrain", new Runnable() {
   public void run() {
-    clearAllLists();
-    loadMainListEquip(game.player);
+    if (game!=null)
+    game.player.updateNeighbor();
   }
 }
 )});
@@ -83,7 +85,6 @@ void clearAllLists() {
 
 void loadMainListObjects(AGObjects objects) {
   clearAllLists();
-
   for (AGObject part : objects) {
     if (part!=null) {
       String name;
@@ -101,10 +102,23 @@ void loadMainListObjects(AGObjects objects) {
           name = part.getName()+" (труп)";
       } else
         name = part.getName();
-
       mainList.items.add(new ListElement(part.id, name, part.sprite, white, false, new Runnable() {
         public void run() {
           loadSecondListObjectActions(mainList.select.getObject());
+        }
+      }
+      ));
+      mainList.resizeSlider();
+    }
+  }
+}
+void loadMainListLayers(AGObjects layers) {
+  clearAllLists();
+  for (AGObject part : layers) {
+    if (part!=null) {
+      mainList.items.add(new ListElement(part.id, part.getName(), part.sprite, white, false, new Runnable() {
+        public void run() {
+          loadSecondListObjectActions(mainList.select.getLayer());
         }
       }
       ));
@@ -181,15 +195,15 @@ void loadSecondListItemActions(AGHuman human, int id) {
   if (human.items.getCount(id)>1)
     actions.add(itemThrowAll);
   int itemClass = d.getItemClass(id);
-  if (itemClass==Database.DRUG)
+  if (itemClass==AGData.DRUG)
     actions.add(itemUse);
-  else if (itemClass==Database.FOOD)
+  else if (itemClass==AGData.FOOD)
     actions.add(itemEat);
-  else if (itemClass==Database.DRINK)
+  else if (itemClass==AGData.DRINK)
     actions.add(itemDrink);
-  else if (itemClass==Database.ARMOR || itemClass==Database.CONTAINER)
+  else if (itemClass==AGData.ARMOR || itemClass==AGData.ITM_CONTAINER)
     actions.add(new AGAction ("надеть", setItemWear));
-  else if (itemClass==Database.WEAPON_FIRE || itemClass==Database.WEAPON_HOLD)
+  else if (itemClass==AGData.WEAPON_FIRE || itemClass==AGData.WEAPON_HOLD)
     actions.add(new AGAction ("вооружиться", setItemWear));
   for (AGAction part : actions) 
     secondList.items.add(new ListElement(part.id, part.name, null, white, true, part.script));
@@ -201,9 +215,9 @@ void loadSecondListWearActions(AGHuman human, int id_body) {
   actions.add(getWearInfo);
   int item = human.parts.get(id_body), itemClass = d.getItemClass(item);
   if (item!=-1) {
-    if (itemClass==Database.ARMOR || itemClass==Database.CONTAINER)
+    if (itemClass==AGData.ARMOR || itemClass==AGData.ITM_CONTAINER)
       actions.add(new AGAction ("снять", removeItemWear));
-    else if (itemClass==Database.WEAPON_FIRE || itemClass==Database.WEAPON_HOLD)
+    else if (itemClass==AGData.WEAPON_FIRE || itemClass==AGData.WEAPON_HOLD)
       actions.add(new AGAction ("убрать", removeItemWear));
   }
   for (AGAction part : actions) 
@@ -339,6 +353,9 @@ class ListElement {
   AGObject getObject() {
     return game.room.getAllObjects().getAGObject(id);
   }
+  AGObject getLayer() {
+    return game.room.layer[id-(int(id/game.room.sizeX)*game.room.sizeX)][int(id/game.room.sizeX)];
+  }
 }
 class RadioButton extends ActiveElement {
   int orientation;
@@ -351,6 +368,7 @@ class RadioButton extends ActiveElement {
     this.orientation = constrain(orientation, 0, 1);
     select=null;
   }
+ 
   void addButton(SimpleRadioButton button) {
     buttons.add(button);
     update();
@@ -492,6 +510,6 @@ void drawParameter(int x, int y, int width, String text, String parameter, color
   String points="";
   while (textWidth(points)<lengthPoint)
     points+=".";
-    fill(_color);
+  fill(_color);
   text(text+points+parameter, x, y);
 }
